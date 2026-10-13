@@ -15,11 +15,9 @@ jobs:
   backend-build:
     name: Build and test backend
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: Backend/todo-summary-assistant
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,11 +36,9 @@ jobs:
   frontend-build:
     name: Build frontend
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: Frontend/todo
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -64,7 +60,6 @@ jobs:
     name: Build Docker images
     runs-on: ubuntu-latest
     needs: [backend-build, frontend-build]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -107,21 +102,18 @@ jobs:
       - name: Deploy through AWS Systems Manager
         env:
           EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+        shell: bash
         run: |
-          cat > /tmp/ssm-input.json <<EOF
-          {
-            "DocumentName": "AWS-RunShellScript",
-            "InstanceIds": ["${EC2_INSTANCE_ID}"],
-            "Parameters": {
-              "commands": [
-                "sudo -u ubuntu -H bash -lc 'cd /home/ubuntu/TodoSummaryAssistant-Fresh && git checkout -- docker-compose.yml && git pull --ff-only origin main && sed -i \"s|127.0.0.1:3002:80|80:80|\" docker-compose.yml && sudo docker compose config --quiet && sudo docker compose up -d --build'"
-              ]
-            }
-          }
-          EOF
-
           COMMAND_ID=$(aws ssm send-command \
-            --cli-input-json file:///tmp/ssm-input.json \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "cd /home/ubuntu/TodoSummaryAssistant-Fresh",
+              "git pull --ff-only origin main",
+              "sed -i \"s|127.0.0.1:3002:80|80:80|\" docker-compose.yml",
+              "sudo docker compose config --quiet",
+              "sudo docker compose up -d --build"
+            ]' \
             --query 'Command.CommandId' \
             --output text)
 
@@ -136,3 +128,4 @@ jobs:
             --instance-id "$EC2_INSTANCE_ID" \
             --query 'StandardOutputContent' \
             --output text
+
