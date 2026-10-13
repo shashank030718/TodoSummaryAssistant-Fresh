@@ -1,0 +1,62 @@
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: todo-fresh-compose-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: todo_assessment_db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - todo_fresh_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mysqladmin ping -h localhost -p"$${MYSQL_ROOT_PASSWORD}" --silent'
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - todo-fresh-network
+
+  backend:
+    build:
+      context: ./Backend/todo-summary-assistant
+    image: todo-summary-fresh-backend:local
+    container_name: todo-fresh-compose-backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/todo_assessment_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      COHERE_API_KEY: ${COHERE_API_KEY:?Set COHERE_API_KEY in .env}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8083:8080"
+    networks:
+      - todo-fresh-network
+
+  frontend:
+    build:
+      context: ./Frontend/todo
+    image: todo-summary-fresh-frontend:local
+    container_name: todo-fresh-compose-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:3002:80"
+    networks:
+      - todo-fresh-network
+
+volumes:
+  todo_fresh_mysql_data:
+
+networks:
+  todo-fresh-network:
+    driver: bridge

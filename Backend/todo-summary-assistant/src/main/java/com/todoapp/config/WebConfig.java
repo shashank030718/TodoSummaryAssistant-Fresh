@@ -1,3 +1,4 @@
+
 package com.todoapp.config;
 
 import org.springframework.context.annotation.Configuration;
@@ -10,9 +11,12 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:3000") // React app's URL
+                .allowedOrigins(
+                        "http://localhost:3000",
+                        "http://localhost:3001",
+                        "http://localhost:3002"
+                )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true);
+                .allowedHeaders("*");
     }
 }

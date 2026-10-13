@@ -1,7 +1,7 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8082/api/todos';
+const API_BASE_URL = '/api/todos';
 
 const getAllTodos = async () => {
     const response = await axios.get(API_BASE_URL);
