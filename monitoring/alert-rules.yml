@@ -1,0 +1,30 @@
+
+groups:
+  - name: todo-application-alerts
+    rules:
+      - alert: BackendDown
+        expr: up{job="spring-boot-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Todo backend is down"
+          description: "Prometheus cannot scrape the Spring Boot backend for more than 1 minute."
+
+      - alert: EC2NodeExporterDown
+        expr: up{job="ec2-node"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "EC2 host metrics unavailable"
+          description: "Prometheus cannot scrape Node Exporter for more than 1 minute."
+
+      - alert: HighEC2CPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High EC2 CPU usage"
+          description: "EC2 CPU usage has remained above 85% for 5 minutes."

@@ -50,12 +50,64 @@ services:
     depends_on:
       - backend
     ports:
-      - "127.0.0.1:3002:80"
+      - "80:80"
+    networks:
+      - todo-fresh-network
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: todo-fresh-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - backend
+      - node-exporter
+    networks:
+      - todo-fresh-network
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: todo-fresh-node-exporter
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - todo-fresh-network
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: todo-fresh-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
     networks:
       - todo-fresh-network
 
 volumes:
   todo_fresh_mysql_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   todo-fresh-network:
